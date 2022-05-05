@@ -1,4 +1,4 @@
-module github.com/Trey2k/ocSocket
+module github.com/ocScripts/ocSocket
 
 go 1.18
 
