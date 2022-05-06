@@ -19,7 +19,7 @@ func NewEvent(name string, data interface{}) (*Event, error) {
 	event := &Event{
 		Name: name,
 	}
-	var err error
+
 	bytes, err := json.Marshal(data)
 	if err != nil {
 		return nil, err

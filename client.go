@@ -11,24 +11,27 @@ import (
 )
 
 type Client struct {
-	UUID  string
-	conn  net.Conn
-	ready chan bool
-	open  bool
+	UUID            string
+	conn            net.Conn
+	ready           chan bool
+	open            bool
+	clientCallbacks map[int]clientCallback
+	callbackID      int
 }
 
 func newClient(con net.Conn) *Client {
 	client := &Client{
-		conn:  con,
-		ready: make(chan bool),
-		UUID:  uuid.New().String(),
-		open:  false,
+		conn:            con,
+		ready:           make(chan bool),
+		UUID:            uuid.New().String(),
+		open:            false,
+		clientCallbacks: make(map[int]clientCallback),
 	}
 
 	return client
 }
 
-func (client *Client) listen(eventChan chan *Event) {
+func (client *Client) listen(socket *OCSocket) {
 	client.ready <- true
 	client.open = true
 	for client.open {
@@ -46,7 +49,15 @@ func (client *Client) listen(eventChan chan *Event) {
 		}
 		event.Client = client
 
-		eventChan <- event
+		switch event.Name {
+		case "triggerServerCallback":
+			socket.triggerCallbackHandler(event)
+		case "clientCallback":
+			socket.clientCallbackHandler(event)
+		default:
+			socket.EventChan <- event
+		}
+
 	}
 }
 

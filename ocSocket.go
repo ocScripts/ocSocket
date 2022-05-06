@@ -6,18 +6,23 @@ import (
 )
 
 type OCSocket struct {
-	Clients   map[string]*Client
-	Address   string
-	EventChan chan *Event
+	Clients         map[string]*Client
+	Address         string
+	EventChan       chan *Event
+	ServerCallbacks map[string]serverCallback
 }
 
 func NewSocket(address string) *OCSocket {
 	socket := &OCSocket{
-		Clients: make(map[string]*Client),
-		Address: address,
+		Clients:         make(map[string]*Client),
+		Address:         address,
+		ServerCallbacks: make(map[string]serverCallback),
 
 		EventChan: make(chan *Event),
 	}
+
+	socket.RegisterCallback("ping", pong)
+	socket.RegisterCallback("getUUID", getUUID)
 
 	return socket
 }
@@ -37,23 +42,9 @@ func (socket *OCSocket) Open() error {
 		newClient := newClient(conn)
 
 		socket.Clients[newClient.UUID] = newClient
-		go newClient.listen(socket.EventChan)
+		go newClient.listen(socket)
 
 		<-newClient.ready
-
-		uuid := &UUIDEvent{
-			UUID: newClient.UUID,
-		}
-
-		event, err := NewEvent("uuid", uuid)
-		if err != nil {
-			return err
-		}
-
-		err = newClient.SendEvent(event)
-		if err != nil {
-			return err
-		}
 	}
 }
 
